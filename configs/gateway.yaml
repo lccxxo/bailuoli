@@ -1,0 +1,24 @@
+server:
+  addr: ":8080"
+  read_timeout: 15s # 读取请求超时时间
+  write_timeout: 15s # 写入响应超时时间
+  shutdown_timeout: 15s # 关闭超时时间
+
+log:
+  level: "debug" # 日志等级
+  outputs: # 日志输出目标
+    - "stdout"
+    - "/var/log/bailuoli/gateway/access.log"
+  rotation: # 日志轮转策略
+    max_size: 100 # 日志最大大小 mb
+    max_age: 7 # 日志保留时间
+    max_backups: 15 # 最多保留日志数
+    compress: true # 启用GZIP压缩
+
+routes: # 转发路由配置
+  - name: "upload-service" # 路由名称
+    path: "/upload" # 路由路径
+    match_type: "prefix" # 转发类型
+    upstreams: # 转发地址 多个
+      - "http://localhost:9191"
+    strip_prefix: false # 是否切割前缀
