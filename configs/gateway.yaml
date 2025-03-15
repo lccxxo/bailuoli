@@ -17,8 +17,11 @@ log:
 
 routes: # 转发路由配置
   - name: "upload-service" # 路由名称
-    path: "/upload" # 路由路径
+    path: "/load-balance" # 路由路径
     match_type: "prefix" # 转发类型
     upstreams: # 转发地址 多个
       - "http://localhost:9191"
+      - "http://localhost:8181"
     strip_prefix: false # 是否切割前缀
+    load_balance: # 负载均衡策略
+      strategy: "least-connections" # 最小连接
