@@ -1,7 +1,9 @@
 package proxy
 
 import (
+	"github.com/lccxxo/bailuoli/internal/logger"
 	"github.com/lccxxo/bailuoli/internal/model"
+	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -69,10 +71,10 @@ type LoadBalanceReverseProxy struct {
 	reqPool     sync.Pool
 }
 
-func NewLoadBalanceReverseProxy(loadBalanceConfig model.LoadBalanceConfig, upstreams []string) *LoadBalanceReverseProxy {
+func NewLoadBalanceReverseProxy(loadBalanceConfig model.LoadBalanceConfig, upstreams []*model.UpstreamsConfig) *LoadBalanceReverseProxy {
 	urls := make([]*url.URL, 0, len(upstreams))
 	for _, u := range upstreams {
-		parse, _ := url.Parse(u)
+		parse, _ := url.Parse(u.Host + u.Path)
 		urls = append(urls, parse)
 	}
 
@@ -132,6 +134,7 @@ func (p *LoadBalanceReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 // 请求预处理
 func (p *LoadBalanceReverseProxy) director(r *http.Request) {
+	logger.Logger.Info("request", zap.String("url", r.URL.String()))
 	if route := r.Context().Value("route").(*model.Route); route != nil {
 		if route.StripPrefix {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, route.Path)
@@ -174,7 +177,7 @@ func (p *requestContext) process(w http.ResponseWriter, r *http.Request) {
 	r.URL.Scheme = target.Scheme
 	r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 	r.Host = target.Host
-	r.RequestURI = target.Path
+	r.URL.Path = target.Path
 
 	p.proxy.proxy.ServeHTTP(w, r)
 }
