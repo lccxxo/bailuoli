@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/lccxxo/bailuoli/internal/model"
 	"gopkg.in/yaml.v3"
 	"os"
 	"time"
@@ -9,7 +10,7 @@ import (
 )
 
 // Load 加载配置（配置文件 + 环境变量） 环境变量 > 配置文件
-func Load(path string) (*Config, error) {
+func Load(path string) (*model.Config, error) {
 	cfg, err := loadFromFile(path)
 	if err != nil {
 		return nil, err
@@ -23,13 +24,13 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-func loadFromFile(path string) (*Config, error) {
+func loadFromFile(path string) (*model.Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var cfg Config
+	var cfg model.Config
 	err = yaml.Unmarshal(data, &cfg)
 	if err != nil {
 		return nil, err
@@ -45,7 +46,7 @@ func loadFromFile(path string) (*Config, error) {
 }
 
 // 设置默认值
-func setDefaults(cfg *Config) {
+func setDefaults(cfg *model.Config) {
 	if cfg.Server.Addr == "" {
 		cfg.Server.Addr = ":8080"
 	}
@@ -54,7 +55,7 @@ func setDefaults(cfg *Config) {
 	}
 }
 
-func validate(cfg *Config) error {
+func validate(cfg *model.Config) error {
 	// todo 验证配置文件字段的合法性
 
 	return nil

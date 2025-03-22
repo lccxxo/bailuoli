@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/lccxxo/bailuoli/internal/model"
 	"log"
 	"path/filepath"
 	"sync"
@@ -10,7 +11,7 @@ import (
 )
 import "github.com/fsnotify/fsnotify"
 
-type WatchCallback func(cfg *Config)
+type WatchCallback func(cfg *model.Config)
 
 var (
 	watcherLock sync.Mutex

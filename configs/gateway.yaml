@@ -8,7 +8,7 @@ log:
   level: "debug" # 日志等级
   outputs: # 日志输出目标
     - "stdout"
-    - "/var/log/bailuoli/gateway/access.log"
+    - "/home/lccxxo/bailuoli/gateway/access.log"
   rotation: # 日志轮转策略
     max_size: 100 # 日志最大大小 mb
     max_age: 7 # 日志保留时间
@@ -21,9 +21,31 @@ routes: # 转发路由配置
     match_type: "prefix" # 转发类型
     upstreams: # 转发地址 多个
         - host: "http://localhost:8181" # 转发地址
-          path: "/upload" # 转发路径
-        - host: "http://localhost:9191" # 转发地址
-          path: "/upload" # 转发路径
-    strip_prefix: false # 是否切割前缀
+          path: "/healthy" # 转发路径
+          circuit_breaker:
+            failure_threshold: 0.5 # 触发熔断的失败率阈值（例如0.5表示50%）
+            consecutive_error_trigger: 5 # 连续错误触发阈值
+            half_open_max_requests: 15 # 半开状态允许的最大试探请求数
+            open_state_timeout: 10s # 熔断后进入半开的等待时间
+            window_duration: 10s # 统计窗口时长
+        - host: "http://127.0.0.1:9191" # 转发地址
+          path: "/healthy" # 转发路径
+          circuit_breaker:
+            failure_threshold: 0.5 # 触发熔断的失败率阈值（例如0.5表示50%）
+            consecutive_error_trigger: 5 # 连续错误触发阈值
+            half_open_max_requests: 10 # 半开状态允许的最大试探请求数
+            open_state_timeout: 10s # 熔断后进入半开的等待时间
+            window_duration: 10s # 统计窗口时长
+    strip_prefix: true # 是否切割前缀
     load_balance: # 负载均衡策略
       strategy: "least-connections" # 最小连接
+      healthy_check: # 健康检查
+        enable: true # 是否启用
+        interval: 5s # 检查间隔
+        timeout: 5s # 检查超时
+        path: "/health" # 检查路径
+        success_code: # 成功状态码
+            - 200
+            - 204
+        unhealthy_threshold: 3 # 失败阈值 请求失败3次则认为不健康
+        healthy_threshold: 0 # 成功阈值 请求成功2次则认为健康

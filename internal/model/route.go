@@ -2,7 +2,6 @@ package model
 
 import (
 	"github.com/lccxxo/bailuoli/internal/match"
-	"time"
 )
 
 type Route struct {
@@ -20,18 +19,10 @@ type RouteConfig struct {
 	Routes []*Route `yaml:"routes"`
 }
 
-// LoadBalanceConfig 负载均衡配置
-type LoadBalanceConfig struct {
-	Strategy    string         `yaml:"strategy"`     // 负载均衡策略名称 默认 round-robin
-	Weighted    map[string]int `yaml:"weight"`       // 权重配置
-	MaxConn     int            `yaml:"max_conn"`     // 最大连接数
-	HealthCheck time.Duration  `yaml:"health_check"` // 健康检查间隔
-	Timeout     time.Duration  `yaml:"timeout"`      // 超时时间间隔
-}
-
 type UpstreamsConfig struct {
-	Host        string `yaml:"host"`         // 必填，目标主机（如：10.0.0.1 或 backend.service）
-	Path        string `yaml:"path"`         // 转发后的基础路径（默认为空）
-	Method      string `yaml:"method"`       // 请求方法（默认 GET）
-	ContentType string `yaml:"content_type"` // 请求头中的 Content-Type（默认 application/json）
+	Host                 string               `yaml:"host"`            // 必填，目标主机（如：10.0.0.1 或 backend.service）
+	Path                 string               `yaml:"path"`            // 转发后的基础路径（默认为空）
+	Method               string               `yaml:"method"`          // 请求方法（默认 GET）
+	ContentType          string               `yaml:"content_type"`    // 请求头中的 Content-Type（默认 application/json）
+	CircuitBreakerConfig CircuitBreakerConfig `yaml:"circuit_breaker"` // 熔断器配置
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/lccxxo/bailuoli/internal/logger"
 	"github.com/lccxxo/bailuoli/internal/model"
 	"github.com/lccxxo/bailuoli/internal/proxy/lb"
+	"github.com/lccxxo/bailuoli/internal/proxy/lb/circuit_breaker"
 	"go.uber.org/zap"
 	"net"
 	"net/http"
@@ -31,27 +32,25 @@ var transport = &http.Transport{
 	ForceAttemptHTTP2:     true,             // 启用HTTP/2
 }
 
-// LoadBalancer 负载均衡转发器
-type LoadBalancer interface {
-	Next(r *http.Request) (*url.URL, error) // 策略实现
-	AddUpstream(upstream *url.URL)          // 添加上游节点
-	RemoveUpstream(upstream *url.URL)       // 移除上游节点
-}
-
 type LoadBalanceReverseProxy struct {
-	loadBalance LoadBalancer
-	proxy       *httputil.ReverseProxy
-	reqPool     sync.Pool
+	loadBalance    lb.LoadBalancer                 // 负载均衡器
+	proxy          *httputil.ReverseProxy          // 反向代理
+	reqPool        sync.Pool                       // 请求上下文池
+	breakerManager *circuit_breaker.BreakerManager // 熔断器管理器
 }
 
-func NewLoadBalanceReverseProxy(loadBalanceConfig model.LoadBalanceConfig, upstreams []*model.UpstreamsConfig) *LoadBalanceReverseProxy {
+func NewLoadBalanceReverseProxy(
+	loadBalanceConfig model.LoadBalanceConfig,
+	upstreams []*model.UpstreamsConfig,
+	breakerManager *circuit_breaker.BreakerManager,
+) *LoadBalanceReverseProxy {
 	urls := make([]*url.URL, 0, len(upstreams))
 	for _, u := range upstreams {
 		parse, _ := url.Parse(u.Host + u.Path)
 		urls = append(urls, parse)
 	}
 
-	var loadBalancer LoadBalancer
+	var loadBalancer lb.LoadBalancer
 	switch loadBalanceConfig.Strategy {
 	case "round":
 		loadBalancer = lb.NewRandomLoadBalancer(urls)
@@ -68,7 +67,8 @@ func NewLoadBalanceReverseProxy(loadBalanceConfig model.LoadBalanceConfig, upstr
 	}
 
 	p := &LoadBalanceReverseProxy{
-		loadBalance: loadBalancer,
+		loadBalance:    loadBalancer,
+		breakerManager: breakerManager,
 	}
 
 	p.reqPool.New = func() interface{} {

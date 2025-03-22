@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/lccxxo/bailuoli/internal/controller"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/lccxxo/bailuoli/internal/controller"
+	"github.com/lccxxo/bailuoli/internal/model"
 
 	"github.com/lccxxo/bailuoli/internal/config"
 	"github.com/lccxxo/bailuoli/internal/logger"
@@ -39,7 +41,7 @@ func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config.Watch(ctx, "configs/gateway.yaml", func(newCfg *config.Config) {
+	config.Watch(ctx, "configs/gateway.yaml", func(newCfg *model.Config) {
 		logger.Logger.Info("检测到配置变更，开始热更新")
 
 		// 更新路由
@@ -80,7 +82,7 @@ func Run() {
 	waitForShutdown(server, cfg.Server.ShutdownTimeout)
 }
 
-func startServer(server *http.Server, cfg *config.Config) {
+func startServer(server *http.Server, cfg *model.Config) {
 	go func() {
 		logger.Logger.Info("Starting API Gateway",
 			zap.String("address", server.Addr))

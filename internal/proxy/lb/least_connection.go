@@ -39,14 +39,15 @@ func (b *LeastConnectionLoadBalancer) Next(r *http.Request) (*url.URL, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if len(b.upstreams) == 0 {
-		return nil, constants.ErrNoUpstreams
+	healthy := b.healthyUpstreams()
+	if len(healthy) == 0 {
+		return nil, constants.ErrNoHealthyUpstreams
 	}
 
 	// 选择最少连接的上游节点
 	var minURL *url.URL
 	var minCount = int64(math.MaxInt64)
-	for _, upstream := range b.upstreams {
+	for _, upstream := range healthy {
 		count := b.connCounts.counters[upstream.Host].Load()
 
 		if count < minCount {
