@@ -3,6 +3,7 @@ package proxy
 import (
 	"github.com/lccxxo/bailuoli/internal/logger"
 	"github.com/lccxxo/bailuoli/internal/model"
+	"github.com/lccxxo/bailuoli/internal/proxy/lb"
 	"go.uber.org/zap"
 	"net"
 	"net/http"
@@ -37,34 +38,6 @@ type LoadBalancer interface {
 	RemoveUpstream(upstream *url.URL)       // 移除上游节点
 }
 
-type BaseLoadBalancer struct {
-	mu        sync.RWMutex
-	upstreams []*url.URL
-}
-
-func (b *BaseLoadBalancer) AddUpstream(upstream *url.URL) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	for _, u := range b.upstreams {
-		if u.String() == upstream.String() {
-			return
-		}
-	}
-	b.upstreams = append(b.upstreams, upstream)
-}
-
-func (b *BaseLoadBalancer) RemoveUpstream(upstream *url.URL) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	for i, u := range b.upstreams {
-		if u.String() == upstream.String() {
-			b.upstreams = append(b.upstreams[:i], b.upstreams[i+1:]...)
-		}
-	}
-}
-
 type LoadBalanceReverseProxy struct {
 	loadBalance LoadBalancer
 	proxy       *httputil.ReverseProxy
@@ -78,24 +51,24 @@ func NewLoadBalanceReverseProxy(loadBalanceConfig model.LoadBalanceConfig, upstr
 		urls = append(urls, parse)
 	}
 
-	var lb LoadBalancer
+	var loadBalancer LoadBalancer
 	switch loadBalanceConfig.Strategy {
 	case "round":
-		lb = NewRandomLoadBalancer(urls)
+		loadBalancer = lb.NewRandomLoadBalancer(urls)
 	case "round_robin":
-		lb = NewRoundRobinLoadBalancer(urls)
+		loadBalancer = lb.NewRoundRobinLoadBalancer(urls)
 	case "ip_hash":
-		lb = NewIPHashLoadBalancer(urls)
+		loadBalancer = lb.NewIPHashLoadBalancer(urls)
 	case "weighted":
-		lb = NewWeightRoundRobinLoadBalancer(urls, loadBalanceConfig.Weighted)
+		loadBalancer = lb.NewWeightRoundRobinLoadBalancer(urls, loadBalanceConfig.Weighted)
 	case "least-connections":
-		lb = NewLeastConnectionLoadBalancer(urls)
+		loadBalancer = lb.NewLeastConnectionLoadBalancer(urls)
 	default:
 		return nil
 	}
 
 	p := &LoadBalanceReverseProxy{
-		loadBalance: lb,
+		loadBalance: loadBalancer,
 	}
 
 	p.reqPool.New = func() interface{} {

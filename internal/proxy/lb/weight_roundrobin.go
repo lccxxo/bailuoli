@@ -1,4 +1,4 @@
-package proxy
+package lb
 
 import (
 	"github.com/lccxxo/bailuoli/internal/constants"
